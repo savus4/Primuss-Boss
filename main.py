@@ -5,6 +5,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver import Chrome
 import smtplib
 import ssl
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common import exceptions as SeleniumException
 
 from string import Template
 
@@ -54,24 +58,27 @@ def init():
 
 
 def main():
-    # setup
-    primuss_username, primuss_password, my_email_address, my_email_password, dataFolder = init()
-    results = get_grades(primuss_username, primuss_password)
-    
-    # print grades
-    results_str = str()
-    for key in results:
-        results_str += str(key) + ": " + results[key] + "\n\n"
-    #print(results_str)
+    while True:
+        # setup
+        primuss_username, primuss_password, my_email_address, my_email_password, dataFolder = init()
+        results = get_grades(primuss_username, primuss_password)
+        
+        # print grades
+        results_str = str()
+        for key in results:
+            results_str += str(key) + ": " + results[key] + "\n\n"
+        #print(results_str)
 
-    results_path = os.path.join(dataFolder, "cachedResults.json")
-    changed_results: dict = check_for_changes(results_path, results)
-    with open(results_path, "w") as json_file:
-            json.dump(results, json_file)
+        results_path = os.path.join(dataFolder, "cachedResults.json")
+        changed_results: dict = check_for_changes(results_path, results)
+        with open(results_path, "w") as json_file:
+                json.dump(results, json_file)
 
-    if len(changed_results) != 0:
-        subject = get_subject(changed_results)
-        send_mail(subject, results_str, my_email_address, my_email_password)
+        if len(changed_results) != 0:
+            subject = get_subject(changed_results)
+            print("Email sent: " + subject)
+            send_mail(subject, results_str, my_email_address, my_email_password)
+        time.sleep(10*60)
     
 
 def get_subject(changed_results):
@@ -99,11 +106,13 @@ def check_for_changes(resultsPath, currentData):
 
 def get_grades(primuss_username, primuss_password):
     # Start browser
-    headless = False
+    headless = True
     if headless:
         chromeOptions = Options()
-        chromeOptions.add_argument("--headless")
+        chromeOptions.add_argument("headless")
         browser = Chrome(options=chromeOptions)
+        # Random window size, to make buttons clickable
+        browser.set_window_size(1400, 800)
     else:
         browser = Chrome()
     browser.get('https://www3.primuss.de/cgi-bin/login/index.pl?FH=fhin')
@@ -126,10 +135,15 @@ def get_grades(primuss_username, primuss_password):
         my_exams.click()
         my_grades = browser.find_element_by_xpath('//*[@id="main"]/div[2]/div[1]/div[2]/form/input[6]')
         my_grades.click()
-        time.sleep(3)
-
         # Get the current grades
-        new_grades = browser.find_element_by_xpath('//*[@id="content-body"]/table[2]/tbody[2]').get_attribute('innerHTML')
+        try:
+            element = WebDriverWait(browser, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="content-body"]/table[2]/tbody[2]'))
+            )
+            new_grades = element.get_attribute('innerHTML')
+        except SeleniumException.TimeoutException as e:
+            print(str(e))
+
     finally:    
         browser.close()
 
