@@ -1,2 +1,3 @@
-# Grade-Checker
-Check whether your grades updated in Primuss!
+# Primuss Grade Checker
+
+Automatically check your Primuss Grades like a boss!
