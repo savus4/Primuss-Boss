@@ -14,42 +14,48 @@ from email.mime.text import MIMEText
 
 def init():
     # Get credentials
-    credentialPath = "./primussCredentials.json"
-    if not os.path.exists(credentialPath):
+    credentialsFolder = "./credentials"
+    if not os.path.exists(credentialsFolder):
+        os.mkdir(credentialsFolder)
+    dataFolder = "./data"
+    if not os.path.exists(dataFolder):
+        os.mkdir(dataFolder)
+    primussCredentialsFile = "primussCredentials.json"
+    if not os.path.exists(os.path.join(credentialsFolder, primussCredentialsFile)):
         # if data file does not exist, ask for credentials and create one (only first time) 
         cred = dict()
-        cred["username"] = input("Please enter your primuss username: ")
+        cred["username"] = input("Please enter your primuss username (without \"@thi.de\"): ")
         cred["password"] = input("Please enter your primuss password: ")
-        with open(credentialPath, "w") as json_file:
+        with open(os.path.join(credentialsFolder, primussCredentialsFile), "w") as json_file:
             json.dump(cred, json_file)
 
-    emailCredentialPath = "./emailCredentials"
-    if not os.path.exists(emailCredentialPath):
+    emailCredentialsFile = "emailCredentials.json"
+    if not os.path.exists(os.path.join(credentialsFolder, emailCredentialsFile)):
         # if email credential file does not exist, ask for credentials and create one (only first time) 
         cred = dict()
         cred["username"] = input("Please enter your email address (the email with your grades will be sent from and to this address): ")
         cred["password"] = input("Please enter your email password (with Gmail you have to create an app password if you have 2-factor authentication enabled): ")
-        with open(emailCredentialPath, "w") as json_file:
+        with open(os.path.join(credentialsFolder, emailCredentialsFile), "w") as json_file:
             json.dump(cred, json_file)
 
     # get credentials form email credential file
-    with open(emailCredentialPath) as json_file:
+    with open(os.path.join(credentialsFolder, emailCredentialsFile)) as json_file:
         data = json.load(json_file)
         my_email_adress = data["username"]
         my_email_password = data["password"]
 
     # get credentials form data.json file
-    with open(credentialPath) as json_file:
+    with open(os.path.join(credentialsFolder, primussCredentialsFile)) as json_file:
         data = json.load(json_file)
         primuss_username = data["username"]
         primuss_password = data["password"]
 
-    return primuss_username, primuss_password, my_email_adress, my_email_password
+    return primuss_username, primuss_password, my_email_adress, my_email_password, dataFolder
 
 
 def main():
     # setup
-    primuss_username, primuss_password, my_email_address, my_email_password = init()
+    primuss_username, primuss_password, my_email_address, my_email_password, dataFolder = init()
     results = get_grades(primuss_username, primuss_password)
     
     # print grades
@@ -58,7 +64,7 @@ def main():
         results_str += str(key) + ": " + results[key] + "\n\n"
     #print(results_str)
 
-    results_path = "./cachedResults.json"
+    results_path = os.path.join(dataFolder, "cachedResults.json")
     changed_results: dict = check_for_changes(results_path, results)
     with open(results_path, "w") as json_file:
             json.dump(results, json_file)
@@ -101,30 +107,31 @@ def get_grades(primuss_username, primuss_password):
     else:
         browser = Chrome()
     browser.get('https://www3.primuss.de/cgi-bin/login/index.pl?FH=fhin')
-    
-    # Logging in
-    username = browser.find_element_by_id("username")
-    username.click()
-    username.clear()
-    username.send_keys(primuss_username)
-    password = browser.find_element_by_id("password")
-    username.click()
-    password.clear()
-    password.send_keys(primuss_password)
-    button = browser.find_element_by_xpath('/html/body/div/div[5]/form/div[4]/button')
-    button.click()
 
-    # Get to grad announcement page
-    my_exams = browser.find_element_by_xpath('//*[@id="nav-prim"]/div/ul/li[4]/a')
-    my_exams.click()
-    my_grades = browser.find_element_by_xpath('//*[@id="main"]/div[2]/div[1]/div[2]/form/input[6]')
-    my_grades.click()
-    time.sleep(3)
+    try:
+        # Logging in
+        username = browser.find_element_by_id("username")
+        username.click()
+        username.clear()
+        username.send_keys(primuss_username)
+        password = browser.find_element_by_id("password")
+        username.click()
+        password.clear()
+        password.send_keys(primuss_password)
+        button = browser.find_element_by_xpath('/html/body/div/div[5]/form/div[4]/button')
+        button.click()
 
-    # Get the current grades
-    new_grades = browser.find_element_by_xpath('//*[@id="content-body"]/table[2]/tbody[2]').get_attribute('innerHTML')
-    
-    browser.close()
+        # Get to grad announcement page
+        my_exams = browser.find_element_by_xpath('//*[@id="nav-prim"]/div/ul/li[4]/a')
+        my_exams.click()
+        my_grades = browser.find_element_by_xpath('//*[@id="main"]/div[2]/div[1]/div[2]/form/input[6]')
+        my_grades.click()
+        time.sleep(3)
+
+        # Get the current grades
+        new_grades = browser.find_element_by_xpath('//*[@id="content-body"]/table[2]/tbody[2]').get_attribute('innerHTML')
+    finally:    
+        browser.close()
 
     # Parse grades from table
     rows = new_grades.split('<tr')
