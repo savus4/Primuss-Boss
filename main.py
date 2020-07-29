@@ -1,6 +1,7 @@
 import time
 import os
 import json
+import logging
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver import Chrome
 import smtplib
@@ -58,27 +59,34 @@ def init():
 
 
 def main():
+    waitingTime = 5*60
     while True:
         # setup
         primuss_username, primuss_password, my_email_address, my_email_password, dataFolder = init()
-        results = get_grades(primuss_username, primuss_password)
+        results = get_grades(primuss_username, primuss_password, my_email_address, my_email_password)
         
-        # print grades
-        results_str = str()
-        for key in results:
-            results_str += str(key) + ": " + results[key] + "\n\n"
-        #print(results_str)
+        if len(results) != 0:
+            # print grades
+            results_str = str()
+            for key in results:
+                results_str += str(key) + ": " + results[key] + "\n\n"
+            #print(results_str)
 
-        results_path = os.path.join(dataFolder, "cachedResults.json")
-        changed_results: dict = check_for_changes(results_path, results)
-        with open(results_path, "w") as json_file:
-                json.dump(results, json_file)
+            results_path = os.path.join(dataFolder, "cachedResults.json")
+            changed_results: dict = check_for_changes(results_path, results)
+            with open(results_path, "w") as json_file:
+                    json.dump(results, json_file)
 
-        if len(changed_results) != 0:
-            subject = get_subject(changed_results)
-            print("Email sent: " + subject)
-            send_mail(subject, results_str, my_email_address, my_email_password)
-        time.sleep(10*60)
+            if len(changed_results) != 0:
+                subject = get_subject(changed_results)
+                print("Email sent: " + subject)
+                send_mail(subject, results_str, my_email_address, my_email_password)
+            else:
+                print("No changes were found.")
+        else:
+            print("No results were collected. Look at your email inbox for more infos.")
+        print("Waiting " + str(waitingTime) + " seconds until next check.")
+        time.sleep(waitingTime)
     
 
 def get_subject(changed_results):
@@ -104,14 +112,15 @@ def check_for_changes(resultsPath, currentData):
                         changedData[subject] = currentData[subject]
     return changedData
 
-def get_grades(primuss_username, primuss_password):
+def get_grades(primuss_username, primuss_password, email_address, email_password):
+    results = dict()
     # Start browser
     headless = True
     if headless:
         chromeOptions = Options()
         chromeOptions.add_argument("headless")
         browser = Chrome(options=chromeOptions)
-        # Random window size, to make buttons clickable
+        # Random bigger window size, to make buttons clickable
         browser.set_window_size(1400, 800)
     else:
         browser = Chrome()
@@ -136,31 +145,39 @@ def get_grades(primuss_username, primuss_password):
         my_grades = browser.find_element_by_xpath('//*[@id="main"]/div[2]/div[1]/div[2]/form/input[6]')
         my_grades.click()
         # Get the current grades
-        try:
-            element = WebDriverWait(browser, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="content-body"]/table[2]/tbody[2]'))
-            )
-            new_grades = element.get_attribute('innerHTML')
-        except SeleniumException.TimeoutException as e:
-            print(str(e))
 
+        element = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.XPATH, '//*[@id="content-body"]/table[2]/tbody[2]'))
+        )
+        new_grades = element.get_attribute('innerHTML')
+        # Parse grades from table
+        rows = new_grades.split('<tr')
+        i = 0
+        tmp = dict()
+        for e in rows:
+            tmp[i] = e.split('<td')
+            i = i + 1
+
+        for key in tmp:
+            if len(tmp[key]) == 8:
+                new_key = tmp[key][3].split('<')[0][1:]
+                new_grade = tmp[key][6]
+                results[new_key] = new_grade.split('<b>')[1].split('</b>')[0]
+    except SeleniumException.TimeoutException as e:
+        content = str(e) + " was thrown."
+        logging.error(str(e))
+        send_mail("TimeOutException was thrown!", content, email_address, email_password)
+    except SeleniumException.ElementNotInteractableException as e:
+        content = str(e) + " was thrown."
+        logging.error(str(e))
+        send_mail("ElementNotInteractableException was thrown!", content, email_address, email_password)
+    except SeleniumException.ElementNotSelectableException as e:
+        content = str(e) + " was thrown."
+        logging.error(str(e))
+        send_mail("ElementNotSelectableException was thrown!", content, email_address, email_password)
     finally:    
         browser.close()
 
-    # Parse grades from table
-    rows = new_grades.split('<tr')
-    i = 0
-    tmp = dict()
-    for e in rows:
-        tmp[i] = e.split('<td')
-        i = i + 1
-
-    results = dict()
-    for key in tmp:
-        if len(tmp[key]) == 8:
-            new_key = tmp[key][3].split('<')[0][1:]
-            new_grade = tmp[key][6]
-            results[new_key] = new_grade.split('<b>')[1].split('</b>')[0]
     return results
 
 def send_mail(subject, content, email_address, password):
