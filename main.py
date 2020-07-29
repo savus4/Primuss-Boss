@@ -92,9 +92,9 @@ def main():
         time.sleep(waitingTime)
     
 def get_wait_time():
-    now_time = datetime.now().time()
+    now_time = datetime.utcnow().time()
     print("jetzt: " + str(now_time))
-    if now_time <= dtTime(7,00):
+    if now_time >= dtTime(23,00) or now_time <= dtTime(5,00):
         wait_time = 20*60
     else:
         wait_time = 5*60
