@@ -10,7 +10,7 @@ import ssl
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common import exceptions as SeleniumException
+from selenium.common import exceptions as SEL_EXC
 
 from string import Template
 
@@ -165,22 +165,10 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
                 new_key = tmp[key][3].split('<')[0][1:]
                 new_grade = tmp[key][6]
                 results[new_key] = new_grade.split('<b>')[1].split('</b>')[0]
-    except SeleniumException.TimeoutException as e:
+    except (SEL_EXC.TimeoutException, SEL_EXC.ElementNotInteractableException, SEL_EXC.ElementNotSelectableException, SEL_EXC.NoSuchElementException) as e:
         content = str(e) + " was thrown."
         logging.error(str(e))
-        send_mail("TimeOutException was thrown!", content, email_address, email_password)
-    except SeleniumException.ElementNotInteractableException as e:
-        content = str(e) + " was thrown."
-        logging.error(str(e))
-        send_mail("ElementNotInteractableException was thrown!", content, email_address, email_password)
-    except SeleniumException.ElementNotSelectableException as e:
-        content = str(e) + " was thrown."
-        logging.error(str(e))
-        send_mail("ElementNotSelectableException was thrown!", content, email_address, email_password)
-    except SeleniumException.NoSuchElementException as e:
-        content = str(e) + " was thrown."
-        logging.error(str(e))
-        send_mail("NoSuchElementExceptionn was thrown!", content, email_address, email_password)
+        send_mail(str(e.__class__.__name__) + " was thrown!", content, email_address, email_password)
     finally:    
         browser.close()
 
