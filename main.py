@@ -175,6 +175,10 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
         content = str(e) + " was thrown."
         logging.error(str(e))
         send_mail("ElementNotSelectableException was thrown!", content, email_address, email_password)
+    except SeleniumException.NoSuchElementException as e:
+        content = str(e) + " was thrown."
+        logging.error(str(e))
+        send_mail("NoSuchElementExceptionn was thrown!", content, email_address, email_password)
     finally:    
         browser.close()
 
