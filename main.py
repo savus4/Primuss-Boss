@@ -1,4 +1,6 @@
 import time
+from datetime import datetime
+from datetime import time as dtTime
 import random
 import os
 import json
@@ -60,8 +62,7 @@ def init():
 
 
 def main():
-    variance = random.randint(1, 4)
-    waitingTime = 5*60 + variance*60
+    waitingTime = get_wait_time()
     while True:
         # setup
         primuss_username, primuss_password, my_email_address, my_email_password, dataFolder = init()
@@ -90,6 +91,17 @@ def main():
         print("Waiting " + str(waitingTime) + " seconds until next check.")
         time.sleep(waitingTime)
     
+def get_wait_time():
+    now_time = datetime.now().time()
+    print("jetzt: " + str(now_time))
+    if now_time <= dtTime(7,00):
+        wait_time = 20*60
+    else:
+        wait_time = 5*60
+    variance = random.randint(1, 4)
+    wait_time += variance*60
+    print("selected wait time: " + str(wait_time))
+    return wait_time
 
 def get_subject(changed_results):
     subject = str()
