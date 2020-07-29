@@ -1,4 +1,5 @@
 import time
+import random
 import os
 import json
 import logging
@@ -59,7 +60,8 @@ def init():
 
 
 def main():
-    waitingTime = 5*60
+    variance = random.randint(1, 4)
+    waitingTime = 5*60 + variance*60
     while True:
         # setup
         primuss_username, primuss_password, my_email_address, my_email_password, dataFolder = init()
@@ -146,7 +148,7 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
         my_grades.click()
         # Get the current grades
 
-        element = WebDriverWait(browser, 10).until(
+        element = WebDriverWait(browser, 20).until(
             EC.presence_of_element_located((By.XPATH, '//*[@id="content-body"]/table[2]/tbody[2]'))
         )
         new_grades = element.get_attribute('innerHTML')
