@@ -212,6 +212,8 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
             SEL_EXC.ElementNotSelectableException, SEL_EXC.NoSuchElementException) as e:
         content = str(e) + " was thrown."
         logging.error(str(e))
+        print(str(e))
+        
         send_mail(str(e.__class__.__name__) + " was thrown!",
                   content, email_address, email_password)
     finally:
