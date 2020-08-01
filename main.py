@@ -77,21 +77,25 @@ def main():
     while True:
         # setup
         primuss_username, primuss_password, my_email_address, my_email_password, dataFolder = init()
+        # scrape grades from website
         results = get_grades(primuss_username, primuss_password,
                              my_email_address, my_email_password)
 
+        # only act, if grades could be fetched
         if len(results) != 0:
-            # print grades
+            # put new results into a string
             results_str = str()
             for key in results:
                 results_str += str(key) + ": " + results[key] + "\n\n"
-            # print(results_str)
 
+            # check if any grades have changed
             results_path = os.path.join(dataFolder, "cachedResults.json")
             changed_results: dict = check_for_changes(results_path, results)
+            # save new grades to disk
             with open(results_path, "w") as json_file:
                 json.dump(results, json_file)
 
+            # send email, if any grades have changed
             if len(changed_results) != 0:
                 subject = get_subject(changed_results)
                 print("Email sent: \"" + subject + "\"")
@@ -156,7 +160,7 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
         chromeOptions.add_argument("headless")
         browser = Chrome(options=chromeOptions)
         # Random bigger window size, to make buttons clickable
-        browser.set_window_size(1400, 800)
+        #browser.set_window_size(1400, 800)
     else:
         browser = Chrome()
     browser.get('https://www3.primuss.de/cgi-bin/login/index.pl?FH=fhin')
@@ -176,6 +180,8 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
         button.click()
 
         # Get to grad announcement page
+        open_menu = browser.find_element_by_xpath('//*[@id="main"]/div[1]/div/div[1]/button')
+        open_menu.click()
         my_exams = browser.find_element_by_xpath(
             '//*[@id="nav-prim"]/div/ul/li[4]/a')
         my_exams.click()
