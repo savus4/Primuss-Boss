@@ -15,8 +15,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common import exceptions as SEL_EXC
 
-from string import Template
-
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -29,6 +27,11 @@ subjects = {"Digitale Signalverarbeitung": "DS",
 
 
 def init():
+    # Logging config
+    log_file = "log.txt"
+    if os.path.exists(log_file):
+        os.remove(log_file)
+    logging.basicConfig(filename=log_file,level=logging.INFO)
     # Get credentials
     credentialsFolder = "./credentials"
     if not os.path.exists(credentialsFolder):
@@ -155,7 +158,7 @@ def check_for_changes(resultsPath, currentData):
 def get_grades(primuss_username, primuss_password, email_address, email_password):
     results = dict()
     # Start browser
-    headless = True
+    headless = False
     if headless:
         chromeOptions = Options()
         chromeOptions.add_argument("headless")
@@ -214,9 +217,9 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
             SEL_EXC.ElementNotSelectableException, 
             SEL_EXC.NoSuchElementException) as e:
         content = str(e) + " was thrown."
-        logging.error(str(e))
         content += "\n\n" + traceback.format_exc()
         print(content)
+        logging.error(content)
         
         send_mail(str(e.__class__.__name__) + " was thrown!",
                   content, email_address, email_password)
