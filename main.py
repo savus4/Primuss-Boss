@@ -5,10 +5,11 @@ import random
 import os
 import json
 import logging
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver import Chrome
 import smtplib
 import ssl
+import traceback
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver import Chrome
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -208,11 +209,14 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
                 new_key = tmp[key][3].split('<')[0][1:]
                 new_grade = tmp[key][6]
                 results[new_key] = new_grade.split('<b>')[1].split('</b>')[0]
-    except (SEL_EXC.TimeoutException, SEL_EXC.ElementNotInteractableException, 
-            SEL_EXC.ElementNotSelectableException, SEL_EXC.NoSuchElementException) as e:
+    except (SEL_EXC.TimeoutException, 
+            SEL_EXC.ElementNotInteractableException, 
+            SEL_EXC.ElementNotSelectableException, 
+            SEL_EXC.NoSuchElementException) as e:
         content = str(e) + " was thrown."
         logging.error(str(e))
-        print(str(e))
+        content += "\n\n" + traceback.format_exc()
+        print(content)
         
         send_mail(str(e.__class__.__name__) + " was thrown!",
                   content, email_address, email_password)
@@ -225,18 +229,16 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
 def send_mail(subject, content, email_address, password):
 
     # set up the SMTP server
-    context = ssl.create_default_context()
-    s = smtplib.SMTP_SSL(host='smtp.gmail.com', port=465, context=context)
+    s = smtplib.SMTP_SSL(host='smtp.gmail.com', port=465, context=ssl.create_default_context())
     s.ehlo()
-
     s.login(email_address, password)
 
-    # For each contact, send the email:
-    msg = MIMEMultipart()  # create a message
+    # create a message
+    msg = MIMEMultipart()
 
     # setup the parameters of the message
     msg['From'] = email_address
-    msg['To'] = email_address
+    msg['To'] = "Primuss Boss<" + email_address + ">"
     msg['Subject'] = subject
 
     # add in the message body
