@@ -19,6 +19,13 @@ from string import Template
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+subjects = {"Digitale Signalverarbeitung": "DS",
+            "Automotive-Projekt": "VR",
+            "Informations- und Medienkompetenz (PLV3)": "PLV3",
+            "Praktikum Digitale Signalverarbeitung": "DSP",
+            "Sicherheitskritische Systeme": "SKS", 
+            "Sensoren und Aktoren für Automotive-Anwendungen": "SA"}
+
 
 def init():
     # Get credentials
@@ -30,19 +37,23 @@ def init():
         os.mkdir(dataFolder)
     primussCredentialsFile = "primussCredentials.json"
     if not os.path.exists(os.path.join(credentialsFolder, primussCredentialsFile)):
-        # if data file does not exist, ask for credentials and create one (only first time) 
+        # if data file does not exist, ask for credentials and create one (only first time)
         cred = dict()
-        cred["username"] = input("Please enter your primuss username (without \"@thi.de\"): ")
+        cred["username"] = input(
+            "Please enter your primuss username (without \"@thi.de\"): ")
         cred["password"] = input("Please enter your primuss password: ")
         with open(os.path.join(credentialsFolder, primussCredentialsFile), "w") as json_file:
             json.dump(cred, json_file)
 
     emailCredentialsFile = "emailCredentials.json"
     if not os.path.exists(os.path.join(credentialsFolder, emailCredentialsFile)):
-        # if email credential file does not exist, ask for credentials and create one (only first time) 
+        # if email credential file does not exist, ask for credentials and create one (only first time)
         cred = dict()
-        cred["username"] = input("Please enter your email address (the email with your grades will be sent from and to this address): ")
-        cred["password"] = input("Please enter your email password (with Gmail you have to create an app password if you have 2-factor authentication enabled): ")
+        cred["username"] = input(
+            "Please enter your email address (the email with your grades will be sent from and to this address): ")
+        cred["password"] = input(
+            """Please enter your email password (with Gmail you have to create an 
+            app password if you have 2-factor authentication enabled): """)
         with open(os.path.join(credentialsFolder, emailCredentialsFile), "w") as json_file:
             json.dump(cred, json_file)
 
@@ -66,54 +77,63 @@ def main():
     while True:
         # setup
         primuss_username, primuss_password, my_email_address, my_email_password, dataFolder = init()
-        results = get_grades(primuss_username, primuss_password, my_email_address, my_email_password)
-        
+        results = get_grades(primuss_username, primuss_password,
+                             my_email_address, my_email_password)
+
         if len(results) != 0:
             # print grades
             results_str = str()
             for key in results:
                 results_str += str(key) + ": " + results[key] + "\n\n"
-            #print(results_str)
+            # print(results_str)
 
             results_path = os.path.join(dataFolder, "cachedResults.json")
             changed_results: dict = check_for_changes(results_path, results)
             with open(results_path, "w") as json_file:
-                    json.dump(results, json_file)
+                json.dump(results, json_file)
 
             if len(changed_results) != 0:
                 subject = get_subject(changed_results)
-                print("Email sent: " + subject)
-                send_mail(subject, results_str, my_email_address, my_email_password)
+                print("Email sent: \"" + subject + "\"")
+                send_mail(subject, results_str,
+                          my_email_address, my_email_password)
             else:
                 print("No changes were found.")
         else:
             print("No results were collected. Look at your email inbox for more infos.")
         print("Waiting " + str(waitingTime) + " seconds until next check.")
         time.sleep(waitingTime)
-    
+
+
 def get_wait_time():
     now_time = datetime.utcnow().time()
-    print("jetzt: " + str(now_time))
-    if now_time >= dtTime(23,00) or now_time <= dtTime(5,00):
+    weekday = datetime.utcnow().weekday()
+    if now_time >= dtTime(23, 00) or now_time <= dtTime(5, 00) or weekday >= 5:
         wait_time = 20*60
     else:
         wait_time = 5*60
     variance = random.randint(1, 4)
     wait_time += variance*60
-    print("selected wait time: " + str(wait_time))
     return wait_time
+
+def get_subject_abbreviation(subject):
+    for subject_key in subjects:
+        if str(subject) == str(subject_key):
+            return subjects[subject_key]
+    return subject
 
 def get_subject(changed_results):
     subject = str()
     if len(changed_results) == 1:
         for cur_subject in changed_results:
-            subject = str(cur_subject) + ": " + changed_results[cur_subject]
+            subject = get_subject_abbreviation(cur_subject) + ": " + changed_results[cur_subject]
     else:
         subject = "Changes in: "
         for cur_subject in changed_results:
-            subject += str(cur_subject) + ", "
+            subject += get_subject_abbreviation(cur_subject) + ", "
         subject = subject[0:-2]
     return subject
+
 
 def check_for_changes(resultsPath, currentData):
     changedData = dict()
@@ -125,6 +145,7 @@ def check_for_changes(resultsPath, currentData):
                     if subject == cachedSubject and currentData[subject] != cachedData[cachedSubject]:
                         changedData[subject] = currentData[subject]
     return changedData
+
 
 def get_grades(primuss_username, primuss_password, email_address, email_password):
     results = dict()
@@ -150,18 +171,22 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
         username.click()
         password.clear()
         password.send_keys(primuss_password)
-        button = browser.find_element_by_xpath('/html/body/div/div[5]/form/div[4]/button')
+        button = browser.find_element_by_xpath(
+            '/html/body/div/div[5]/form/div[4]/button')
         button.click()
 
         # Get to grad announcement page
-        my_exams = browser.find_element_by_xpath('//*[@id="nav-prim"]/div/ul/li[4]/a')
+        my_exams = browser.find_element_by_xpath(
+            '//*[@id="nav-prim"]/div/ul/li[4]/a')
         my_exams.click()
-        my_grades = browser.find_element_by_xpath('//*[@id="main"]/div[2]/div[1]/div[2]/form/input[6]')
+        my_grades = browser.find_element_by_xpath(
+            '//*[@id="main"]/div[2]/div[1]/div[2]/form/input[6]')
         my_grades.click()
         # Get the current grades
 
         element = WebDriverWait(browser, 20).until(
-            EC.presence_of_element_located((By.XPATH, '//*[@id="content-body"]/table[2]/tbody[2]'))
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="content-body"]/table[2]/tbody[2]'))
         )
         new_grades = element.get_attribute('innerHTML')
         # Parse grades from table
@@ -177,14 +202,17 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
                 new_key = tmp[key][3].split('<')[0][1:]
                 new_grade = tmp[key][6]
                 results[new_key] = new_grade.split('<b>')[1].split('</b>')[0]
-    except (SEL_EXC.TimeoutException, SEL_EXC.ElementNotInteractableException, SEL_EXC.ElementNotSelectableException, SEL_EXC.NoSuchElementException) as e:
+    except (SEL_EXC.TimeoutException, SEL_EXC.ElementNotInteractableException, 
+            SEL_EXC.ElementNotSelectableException, SEL_EXC.NoSuchElementException) as e:
         content = str(e) + " was thrown."
         logging.error(str(e))
-        send_mail(str(e.__class__.__name__) + " was thrown!", content, email_address, email_password)
-    finally:    
+        send_mail(str(e.__class__.__name__) + " was thrown!",
+                  content, email_address, email_password)
+    finally:
         browser.close()
 
     return results
+
 
 def send_mail(subject, content, email_address, password):
 
@@ -196,22 +224,23 @@ def send_mail(subject, content, email_address, password):
     s.login(email_address, password)
 
     # For each contact, send the email:
-    msg = MIMEMultipart() # create a message
+    msg = MIMEMultipart()  # create a message
 
     # setup the parameters of the message
-    msg['From']=email_address
-    msg['To']=email_address
-    msg['Subject']=subject
-    
+    msg['From'] = email_address
+    msg['To'] = email_address
+    msg['Subject'] = subject
+
     # add in the message body
     msg.attach(MIMEText(content, 'plain'))
-    
+
     # send the message via the server set up earlier.
     s.send_message(msg)
     del msg
-        
+
     # Terminate the SMTP session and close the connection
     s.quit()
+
 
 if __name__ == '__main__':
     main()
