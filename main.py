@@ -158,7 +158,7 @@ def check_for_changes(resultsPath, currentData):
 def get_grades(primuss_username, primuss_password, email_address, email_password):
     results = dict()
     # Start browser
-    headless = False
+    headless = True
     if headless:
         chromeOptions = Options()
         chromeOptions.add_argument("headless")
