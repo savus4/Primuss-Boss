@@ -3,9 +3,11 @@ from datetime import datetime
 from datetime import time as dtTime
 import random
 import os
+import sys
 import json
 import logging
 import smtplib
+import requests
 import ssl
 import traceback
 from selenium.webdriver.chrome.options import Options
@@ -73,6 +75,7 @@ def init():
         primuss_username = data["username"]
         primuss_password = data["password"]
 
+    wait_for_internet_connection(my_email_adress, my_email_password)
     return primuss_username, primuss_password, my_email_adress, my_email_password, dataFolder
 
 
@@ -212,16 +215,13 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
                 new_key = tmp[key][3].split('<')[0][1:]
                 new_grade = tmp[key][6]
                 results[new_key] = new_grade.split('<b>')[1].split('</b>')[0]
-    except (SEL_EXC.TimeoutException, 
-            SEL_EXC.ElementNotInteractableException, 
-            SEL_EXC.ElementNotSelectableException, 
-            SEL_EXC.NoSuchElementException) as e:
-        content = str(e) + " was thrown."
-        content += "\n\n" + traceback.format_exc()
-        print(content)
+    except:
+        exc_type, _, _ = sys.exc_info()
+        content = traceback.format_exc()
+        print(str(exc_type.__name__) + "\n\n" + content)
         logging.error(content)
         
-        send_mail(str(e.__class__.__name__) + " was thrown!",
+        send_mail(str(exc_type.__name__) + " was thrown!",
                   content, email_address, email_password)
     finally:
         browser.close()
@@ -254,6 +254,31 @@ def send_mail(subject, content, email_address, password):
     # Terminate the SMTP session and close the connection
     s.quit()
 
+def wait_for_internet_connection(email_address, email_password):
+    timeout = 5
+    bigger_timeout = 100
+    wait_time = 100
+    counter = 0
+    exception_name = str()
+    content = str()
+    while True:
+        try:
+            requests.get('https://google.com/', timeout=timeout)
+            return
+        except:
+            time.sleep(timeout)
+            counter += timeout
+            exc_type, _, _ = sys.exc_info()
+            exception_name = exc_type.__name__
+            content = traceback.format_exc()
+            logging.warning("No internet connection. Trying to reconnect in " + str(timeout) + " seconds.")
+            pass
+        if counter >= wait_time:
+            logging.error("Primuss Boss isn't active since " + str(counter/60) + 
+                          " minutes because of no internet connection.\n\n" + 
+                          exception_name + "\n\n" + content)
+            timeout = bigger_timeout
+            break
 
 if __name__ == '__main__':
     main()
