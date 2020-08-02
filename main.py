@@ -24,7 +24,7 @@ subjects = {"Digitale Signalverarbeitung": "DS",
             "Automotive-Projekt": "VR",
             "Informations- und Medienkompetenz (PLV3)": "PLV3",
             "Praktikum Digitale Signalverarbeitung": "DSP",
-            "Sicherheitskritische Systeme": "SKS", 
+            "Sicherheitskritische Systeme": "SKS",
             "Sensoren und Aktoren für Automotive-Anwendungen": "SA"}
 
 
@@ -33,7 +33,7 @@ def init():
     log_file = "log.txt"
     if os.path.exists(log_file):
         os.remove(log_file)
-    logging.basicConfig(filename=log_file,level=logging.INFO)
+    logging.basicConfig(filename=log_file, level=logging.INFO)
     # Get credentials
     credentialsFolder = "./credentials"
     if not os.path.exists(credentialsFolder):
@@ -127,17 +127,20 @@ def get_wait_time():
     wait_time += variance*60
     return wait_time
 
+
 def get_subject_abbreviation(subject):
     for subject_key in subjects:
         if str(subject) == str(subject_key):
             return subjects[subject_key]
     return subject
 
+
 def get_subject(changed_results):
     subject = str()
     if len(changed_results) == 1:
         for cur_subject in changed_results:
-            subject = get_subject_abbreviation(cur_subject) + ": " + changed_results[cur_subject]
+            subject = get_subject_abbreviation(
+                cur_subject) + ": " + changed_results[cur_subject]
     else:
         subject = "Changes in: "
         for cur_subject in changed_results:
@@ -187,21 +190,27 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
         button.click()
 
         # Get to grad announcement page
-        open_menu = browser.find_element_by_xpath('//*[@id="main"]/div[1]/div/div[1]/button')
+        open_menu = WebDriverWait(browser, 10).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, '//*[@id="main"]/div[1]/div/div[1]/button'))
+        )
         open_menu.click()
-        my_exams = browser.find_element_by_xpath(
-            '//*[@id="nav-prim"]/div/ul/li[4]/a')
+        my_exams = WebDriverWait(browser, 10).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, '//*[@id="nav-prim"]/div/ul/li[4]/a'))
+        )
         my_exams.click()
         my_grades = browser.find_element_by_xpath(
             '//*[@id="main"]/div[2]/div[1]/div[2]/form/input[6]')
         my_grades.click()
-        # Get the current grades
 
+        # Get the current grades
         element = WebDriverWait(browser, 20).until(
             EC.presence_of_element_located(
                 (By.XPATH, '//*[@id="content-body"]/table[2]/tbody[2]'))
         )
         new_grades = element.get_attribute('innerHTML')
+        
         # Parse grades from table
         rows = new_grades.split('<tr')
         i = 0
@@ -220,7 +229,7 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
         content = traceback.format_exc()
         print(str(exc_type.__name__) + "\n\n" + content)
         logging.error(content)
-        
+
         send_mail(str(exc_type.__name__) + " was thrown!",
                   content, email_address, email_password)
     finally:
@@ -232,7 +241,8 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
 def send_mail(subject, content, email_address, password):
 
     # set up the SMTP server
-    s = smtplib.SMTP_SSL(host='smtp.gmail.com', port=465, context=ssl.create_default_context())
+    s = smtplib.SMTP_SSL(host='smtp.gmail.com', port=465,
+                         context=ssl.create_default_context())
     s.ehlo()
     s.login(email_address, password)
 
@@ -254,6 +264,7 @@ def send_mail(subject, content, email_address, password):
     # Terminate the SMTP session and close the connection
     s.quit()
 
+
 def wait_for_internet_connection(email_address, email_password):
     timeout = 5
     bigger_timeout = 100
@@ -271,14 +282,16 @@ def wait_for_internet_connection(email_address, email_password):
             exc_type, _, _ = sys.exc_info()
             exception_name = exc_type.__name__
             content = traceback.format_exc()
-            logging.warning("No internet connection. Trying to reconnect in " + str(timeout) + " seconds.")
+            logging.warning(
+                "No internet connection. Trying to reconnect in " + str(timeout) + " seconds.")
             pass
         if counter >= wait_time:
-            logging.error("Primuss Boss isn't active since " + str(counter/60) + 
-                          " minutes because of no internet connection.\n\n" + 
+            logging.error("Primuss Boss isn't active since " + str(counter/60) +
+                          " minutes because of no internet connection.\n\n" +
                           exception_name + "\n\n" + content)
             timeout = bigger_timeout
             break
+
 
 if __name__ == '__main__':
     main()
