@@ -56,7 +56,7 @@ def init():
         # if email credential file does not exist, ask for credentials and create one (only first time)
         cred = dict()
         cred["username"] = input(
-            "Please enter your email address (the email with your grades will be sent from and to this address): ")
+            "Please enter your Gmail address (the email with your grades will be sent from and to this address): ")
         cred["password"] = input(
             """Please enter your email password (with Gmail you have to create an 
             app password if you have 2-factor authentication enabled): """)
