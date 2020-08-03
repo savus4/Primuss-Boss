@@ -20,13 +20,7 @@ from selenium.common import exceptions as SEL_EXC
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-subjects = {"Digitale Signalverarbeitung": "DS",
-            "Automotive-Projekt": "VR",
-            "Informations- und Medienkompetenz (PLV3)": "PLV3",
-            "Praktikum Digitale Signalverarbeitung": "DSP",
-            "Sicherheitskritische Systeme": "SKS",
-            "Sensoren und Aktoren für Automotive-Anwendungen": "SA"}
-dataFolder = "./data"
+data_folder = "./data"
 
 
 def init():
@@ -39,8 +33,8 @@ def init():
     credentialsFolder = "./credentials"
     if not os.path.exists(credentialsFolder):
         os.mkdir(credentialsFolder)
-    if not os.path.exists(dataFolder):
-        os.mkdir(dataFolder)
+    if not os.path.exists(data_folder):
+        os.mkdir(data_folder)
     primussCredentialsFile = "primussCredentials.json"
     if not os.path.exists(os.path.join(credentialsFolder, primussCredentialsFile)):
         # if data file does not exist, ask for credentials and create one (only first time)
@@ -82,7 +76,7 @@ def init():
 def main():
     wait_time = get_wait_time()
     primuss_username, primuss_password, my_email_address, my_email_password = init()
-    results = Results(dataFolder)
+    results = Results(data_folder)
     while True:
         # scrape grades from website
         results.refresh_grades(get_grades(primuss_username, primuss_password,
@@ -94,7 +88,7 @@ def main():
                 # get body text for email
                 results_str = results.as_string()
                 # get subject for email
-                subject = get_subject(results.changed_results)
+                subject = get_email_subject(results.changed_results, results.subject_abbreviations)
                 send_mail(subject, results_str,
                           my_email_address, my_email_password)
                 print("Email sent: \"" + subject + "\"")
@@ -118,24 +112,23 @@ def get_wait_time():
     return wait_time
 
 
-def get_subject_abbreviation(subject):
-    for subject_key in subjects:
-        if str(subject) == str(subject_key):
-            return subjects[subject_key]
-    return subject
-
-
-def get_subject(changed_results):
+def get_email_subject(changed_results, subject_abbreviations):
     subject = str()
     if len(changed_results) == 1:
         for cur_subject in changed_results:
             subject = get_subject_abbreviation(
-                cur_subject) + ": " + changed_results[cur_subject]
+                cur_subject, subject_abbreviations) + ": " + changed_results[cur_subject]
     else:
         subject = "Changes in: "
         for cur_subject in changed_results:
-            subject += get_subject_abbreviation(cur_subject) + ", "
+            subject += get_subject_abbreviation(cur_subject, subject_abbreviations) + ", "
         subject = subject[0:-2]
+    return subject
+
+def get_subject_abbreviation(subject, subject_abbreviations):
+    for subject_key in subject_abbreviations:
+            if str(subject) == str(subject_key):
+                return subject_abbreviations[subject_key]
     return subject
 
 
@@ -321,12 +314,6 @@ class Results:
         self.results = new_results
         with open(self.results_path, "w") as json_file:
             json.dump(new_results, json_file)
-
-    def get_subject_abbreviation(self, subject):
-        for subject_key in self.subject_abbreviations:
-            if str(subject) == str(subject_key):
-                return self.subject_abbreviations[subject_key]
-        return subject
 
     def as_string(self):
         results_str = str()
