@@ -81,19 +81,18 @@ def init():
 
 def main():
     waitingTime = get_wait_time()
+
     while True:
         # setup
         primuss_username, primuss_password, my_email_address, my_email_password, dataFolder = init()
         # scrape grades from website
         results = get_grades(primuss_username, primuss_password,
                              my_email_address, my_email_password)
-
+        
         # only act, if grades could be fetched
         if len(results) != 0:
             # put new results into a string
-            results_str = str()
-            for key in results:
-                results_str += str(key) + ": " + results[key] + "\n\n"
+            results_str = get_results_string(results)
 
             # check if any grades have changed
             results_path = os.path.join(dataFolder, "cachedResults.json")
@@ -115,12 +114,17 @@ def main():
         print("Waiting " + str(waitingTime) + " seconds until next check.")
         time.sleep(waitingTime)
 
+def get_results_string(results):
+    results_str = str()
+    for key in results:
+        results_str += str(key) + ": " + results[key] + "\n\n"
+    return results_str
 
 def get_wait_time():
     now_time = datetime.utcnow().time()
     weekday = datetime.utcnow().weekday()
     if now_time >= dtTime(23, 00) or now_time <= dtTime(5, 00) or weekday >= 5:
-        wait_time = 20*60
+        wait_time = 30*60
     else:
         wait_time = 5*60
     variance = random.randint(1, 4)
@@ -210,7 +214,7 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
                 (By.XPATH, '//*[@id="content-body"]/table[2]/tbody[2]'))
         )
         new_grades = element.get_attribute('innerHTML')
-        
+
         # Parse grades from table
         rows = new_grades.split('<tr')
         i = 0
@@ -291,7 +295,6 @@ def wait_for_internet_connection(email_address, email_password):
                           exception_name + "\n\n" + content)
             timeout = bigger_timeout
             break
-
 
 if __name__ == '__main__':
     main()
