@@ -142,6 +142,7 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
         chromeOptions = Options()
         chromeOptions.add_argument("headless")
         browser = Chrome(options=chromeOptions)
+        browser.implicitly_wait(5)
         # Random bigger window size, to make buttons clickable
         #browser.set_window_size(1400, 800)
     else:
@@ -165,6 +166,10 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
         # Get to grad announcement page
         open_menu = WebDriverWait(browser, 10).until(
             EC.element_to_be_clickable(
+                (By.XPATH, '//*[@id="main"]/div[1]/div/div[1]/button'))
+        )
+        open_menu = WebDriverWait(browser, 10).until(
+            EC.el(
                 (By.XPATH, '//*[@id="main"]/div[1]/div/div[1]/button'))
         )
         open_menu.click()
