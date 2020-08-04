@@ -168,10 +168,6 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
             EC.element_to_be_clickable(
                 (By.XPATH, '//*[@id="main"]/div[1]/div/div[1]/button'))
         )
-        open_menu = WebDriverWait(browser, 10).until(
-            EC.el(
-                (By.XPATH, '//*[@id="main"]/div[1]/div/div[1]/button'))
-        )
         open_menu.click()
         my_exams = WebDriverWait(browser, 10).until(
             EC.element_to_be_clickable(
