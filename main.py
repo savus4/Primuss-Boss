@@ -142,7 +142,7 @@ def get_grades(primuss_username, primuss_password, email_address, email_password
         chromeOptions = Options()
         chromeOptions.add_argument("headless")
         browser = Chrome(options=chromeOptions)
-        browser.implicitly_wait(5)
+        browser.implicitly_wait(12)
         # Random bigger window size, to make buttons clickable
         #browser.set_window_size(1400, 800)
     else:
