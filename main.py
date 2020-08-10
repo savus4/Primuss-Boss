@@ -225,7 +225,7 @@ def send_mail(subject, content, email_address, password):
 
     # setup the parameters of the message
     msg['From'] = "Primuss Boss<" + email_address + ">"
-    msg['To'] = email_address
+    msg['To'] = "sir0261@thi.de"
     msg['Subject'] = subject
 
     # add in the message body
